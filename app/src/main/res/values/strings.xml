@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">FloatInput</string>
+    <string name="app_name_full">微浮 - 侧边极简输入浮窗</string>
+    <string name="tile_name">极简悬浮输入</string>
+    <string name="hint_input">在此输入中英文内容…</string>
+
+    <!-- Action buttons -->
+    <string name="action_copy">复制</string>
+    <string name="action_clear">清除</string>
+    <string name="action_collapse">隐藏到侧边</string>
+    <string name="action_close">关闭浮窗</string>
+    <string name="action_start_service">开启悬浮窗</string>
+    <string name="action_stop_service">关闭悬浮窗</string>
+    <string name="action_grant_overlay">授予悬浮窗权限</string>
+    <string name="action_grant_notification">授予通知权限 (Android 13+)</string>
+
+    <!-- Status and Tips -->
+    <string name="status_running">悬浮窗服务正在运行中</string>
+    <string name="status_stopped">悬浮窗服务已停止</string>
+    <string name="copied_to_clipboard">已复制到剪贴板</string>
+    <string name="clipboard_empty_warning">输入栏内容为空</string>
+    <string name="cleared_content">已清除输入内容</string>
+    <string name="char_count_format">%d 字</string>
+    <string name="desc_drag_handle">拖拽把手</string>
+
+    <!-- Main Activity UI -->
+    <string name="card_service_control_title">悬浮窗控制</string>
+    <string name="card_service_control_desc">一键启动或关闭屏幕悬浮输入条</string>
+    <string name="card_features_title">三大核心功能</string>
+    <string name="feat_1_title">1. 中英文自由输入</string>
+    <string name="feat_1_desc">采用标准文本输入通道，绝不触发安全键盘，支持搜狗/微信/Gboard等任意第三方输入法，完美支持中英文混输。</string>
+    <string name="feat_2_title">2. 一键极速复制</string>
+    <string name="feat_2_desc">轻触复制按钮即刻将输入文本存入系统剪贴板，提供清脆触感反馈与平滑动画。</string>
+    <string name="feat_3_title">3. 一键快速清空</string>
+    <string name="feat_3_desc">一键重置当前输入栏文本，光标自动归位，高效省心。</string>
+    <string name="feat_edge_title">侧边栏贴边模式</string>
+    <string name="feat_edge_desc">点击顶栏折叠按钮或拖动至屏幕边缘，浮窗即可吸附为极简胶囊把手，不阻挡屏幕背景操作；轻触把手立即展开。</string>
+
+    <!-- Notification -->
+    <string name="notification_channel_name">悬浮窗前台常驻通知</string>
+    <string name="notification_channel_desc">保持悬浮窗在后台稳定运行，点击可快捷控制</string>
+    <string name="notification_title">微浮 输入栏运行中</string>
+    <string name="notification_content">轻触展开/隐藏浮窗，侧边胶囊随时待命</string>
+    <string name="notification_action_toggle">展开 / 隐藏</string>
+    <string name="notification_action_exit">退出浮窗</string>
+
+    <!-- Permissions -->
+    <string name="permission_overlay_required">请先授予悬浮窗权限以正常使用</string>
+    <string name="permission_overlay_granted">悬浮窗权限已就绪</string>
+</resources>

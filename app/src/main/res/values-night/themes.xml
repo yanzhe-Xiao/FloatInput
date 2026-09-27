@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FloatInput" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Status bar / Navigation bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Brand colors -->
+        <item name="colorPrimary">#7DA5FF</item>
+        <item name="colorOnPrimary">#00297B</item>
+        <item name="colorPrimaryContainer">#003DA7</item>
+        <item name="colorOnPrimaryContainer">#D9E2FF</item>
+
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+</resources>

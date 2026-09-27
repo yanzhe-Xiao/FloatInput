@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="card_corner_radius">18dp</dimen>
+    <dimen name="capsule_width">32dp</dimen>
+    <dimen name="capsule_height">64dp</dimen>
+    <dimen name="floating_card_width">300dp</dimen>
+    <dimen name="input_min_height">96dp</dimen>
+    <dimen name="action_btn_height">42dp</dimen>
+</resources>

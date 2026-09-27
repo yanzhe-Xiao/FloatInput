@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/capsuleRoot"
+    android:layout_width="32dp"
+    android:layout_height="64dp"
+    android:background="@drawable/bg_sidebar_capsule"
+    android:clickable="true"
+    android:elevation="10dp"
+    android:focusable="true">
+
+    <!-- Inner vertical accent pill -->
+    <View
+        android:id="@+id/vAccentIndicator"
+        android:layout_width="4dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:background="#8038BDF8" />
+
+</FrameLayout>

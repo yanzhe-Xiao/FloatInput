@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand / Primary -->
+    <color name="primary">#2962FF</color>
+    <color name="primary_variant">#0039CB</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#D9E2FF</color>
+    <color name="on_primary_container">#001945</color>
+
+    <!-- Secondary -->
+    <color name="secondary">#535F70</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#D7E3F8</color>
+    <color name="on_secondary_container">#101C2B</color>
+
+    <!-- Backgrounds & Surfaces (Light) -->
+    <color name="background_light">#F8F9FE</color>
+    <color name="on_background_light">#1A1C1E</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="on_surface_light">#1A1C1E</color>
+    <color name="surface_variant_light">#E1E2EC</color>
+    <color name="on_surface_variant_light">#44474F</color>
+
+    <!-- Glassmorphic & Overlay Colors -->
+    <color name="glass_card_bg_light">#F0FFFFFF</color>
+    <color name="glass_card_stroke_light">#26000000</color>
+    <color name="glass_card_bg_dark">#E61E2128</color>
+    <color name="glass_card_stroke_dark">#26FFFFFF</color>
+
+    <!-- Action Colors -->
+    <color name="color_copy">#10B981</color>
+    <color name="color_copy_bg">#1A10B981</color>
+    <color name="color_clear">#EF4444</color>
+    <color name="color_clear_bg">#1AEF4444</color>
+
+    <!-- Sidebar Capsule -->
+    <color name="capsule_bg">#CC1E293B</color>
+    <color name="capsule_accent">#38BDF8</color>
+
+    <color name="divider">#1F000000</color>
+</resources>
