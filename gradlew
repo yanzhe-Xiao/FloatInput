@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #
 # Copyright © 2015-2021 the original authors.
@@ -111,7 +111,6 @@ fi
 # Collect all arguments for the java sub-shell.
 # By default, then have to be split by space.
 # Split arguments by character \n for nested execution
-args=("$@")
 
 # Escape application args
 exec "$JAVACMD" "-Dorg.gradle.appname=$APP_BASE_NAME" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

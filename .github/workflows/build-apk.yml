@@ -28,10 +28,11 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Accept Android Licenses & Ensure SDK 35
+      - name: Configure Android SDK
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
 
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
@@ -44,7 +45,7 @@ jobs:
         run: |
           mkdir -p output_apks
           find app/build/outputs/apk/ -name "*.apk" -exec cp {} output_apks/ \;
-          ls -la output_apks/
+          ls -lh output_apks/
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
