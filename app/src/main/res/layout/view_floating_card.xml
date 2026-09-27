@@ -47,7 +47,7 @@
                 android:background="@drawable/bg_badge_char"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="1dp"
-                android:text="v1.1.0"
+                android:text="v1.2.0"
                 android:textColor="#94A3B8"
                 android:textSize="10sp" />
 

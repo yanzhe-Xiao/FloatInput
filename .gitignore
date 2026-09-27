@@ -17,3 +17,5 @@ local.properties
 vendor/bundle
 *.keystore
 !debug.keystore
+!release.jks
+!app/keystore/release.jks

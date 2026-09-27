@@ -20,13 +20,17 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.yxiao.floatinput.databinding.ActivityMainBinding
 import com.yxiao.floatinput.service.FloatWindowService
+import com.yxiao.floatinput.updater.UpdateInfo
+import com.yxiao.floatinput.updater.UpdateManager
 import com.yxiao.floatinput.util.AppCrashHandler
 import com.yxiao.floatinput.util.HapticHelper
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var updateManager: UpdateManager
     private var isUpdatingSwitch = false
+    private var cachedUpdateInfo: UpdateInfo? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -49,8 +53,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        updateManager = UpdateManager(this)
+        binding.tvCurrentVersion.text = "当前版本: v${updateManager.getCurrentVersionName()} (永久统一签名)"
+
         setupWindowInsets()
         setupListeners()
+        setupUpdateListeners()
+
+        // Background check for update after 1.5s
+        binding.root.postDelayed({
+            checkForUpdates(isManual = false)
+        }, 1500)
     }
 
     override fun onResume() {
@@ -110,6 +123,87 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "崩溃日志已清除", Toast.LENGTH_SHORT).show()
             HapticHelper.performClick(it)
         }
+    }
+
+    private fun setupUpdateListeners() {
+        binding.btnCheckUpdate.setOnClickListener {
+            HapticHelper.performClick(it)
+            checkForUpdates(isManual = true)
+        }
+
+        binding.btnDownloadInstall.setOnClickListener {
+            HapticHelper.performClick(it)
+            val info = cachedUpdateInfo ?: return@setOnClickListener
+            startDownloadAndInstall(info)
+        }
+    }
+
+    private fun checkForUpdates(isManual: Boolean) {
+        if (isManual) {
+            Toast.makeText(this, "正在从 GitHub 获取最新版本信息…", Toast.LENGTH_SHORT).show()
+            binding.btnCheckUpdate.isEnabled = false
+        }
+
+        updateManager.checkUpdate { result ->
+            if (isManual) {
+                binding.btnCheckUpdate.isEnabled = true
+            }
+
+            result.onSuccess { info ->
+                if (info.hasUpdate) {
+                    cachedUpdateInfo = info
+                    binding.layoutUpdateAvailable.visibility = View.VISIBLE
+                    binding.tvNewVersionTitle.text = "🎉 发现新版本: v${info.latestVersion}"
+                    val sizeMb = if (info.apkSize > 0) String.format("%.2f MB", info.apkSize / (1024f * 1024f)) else "约 2 MB"
+                    binding.tvChangelog.text = "安装包大小: $sizeMb\n\n更新说明:\n${info.changelog}"
+                    if (isManual) {
+                        Toast.makeText(this, "发现新版本 v${info.latestVersion}！", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    if (isManual) {
+                        Toast.makeText(this, "当前已是最新版本 (v${info.currentVersion})", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }.onFailure { err ->
+                if (isManual) {
+                    Toast.makeText(this, "检查更新失败: ${err.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun startDownloadAndInstall(info: UpdateInfo) {
+        if (info.downloadUrl.isEmpty()) {
+            Toast.makeText(this, "未能获取到下载链接，请稍后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        binding.btnDownloadInstall.isEnabled = false
+        binding.pbDownload.visibility = View.VISIBLE
+        binding.tvDownloadProgress.visibility = View.VISIBLE
+        binding.pbDownload.progress = 0
+        binding.tvDownloadProgress.text = "正在极速下载更新包: 0%"
+
+        updateManager.downloadApk(
+            downloadUrl = info.downloadUrl,
+            onProgress = { percent, _ ->
+                binding.pbDownload.progress = percent
+                binding.tvDownloadProgress.text = "正在极速下载更新包: $percent%"
+            },
+            onComplete = { apkFile ->
+                binding.btnDownloadInstall.isEnabled = true
+                binding.tvDownloadProgress.text = "下载完成，正在调起系统安装器…"
+                val success = updateManager.installApk(apkFile)
+                if (!success && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Toast.makeText(this, "请先允许「安装未知应用」权限以覆盖升级", Toast.LENGTH_LONG).show()
+                }
+            },
+            onError = { err ->
+                binding.btnDownloadInstall.isEnabled = true
+                binding.tvDownloadProgress.text = "下载失败: ${err.message}"
+                Toast.makeText(this, "下载更新失败: ${err.message}", Toast.LENGTH_LONG).show()
+            }
+        )
     }
 
     private fun checkAndDisplayCrashReport() {
