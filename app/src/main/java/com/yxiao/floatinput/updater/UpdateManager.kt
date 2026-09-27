@@ -28,6 +28,8 @@ data class UpdateInfo(
 class UpdateManager(private val context: Context) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile
+    private var isDownloading = false
     private val TAG = "UpdateManager"
 
     fun getCurrentVersionName(): String {
@@ -75,13 +77,23 @@ class UpdateManager(private val context: Context) {
                 val currentVer = getCurrentVersionName()
                 dir.listFiles()?.forEach { file ->
                     val name = file.name
-                    if (name.startsWith("FloatInput_v") && name.endsWith(".apk")) {
-                        val fileVer = name.removePrefix("FloatInput_v").removeSuffix(".apk")
-                        // If file version is equal to or older than current installed version, delete it!
-                        if (!isNewerVersion(fileVer, currentVer)) {
-                            file.delete()
-                            Log.d(TAG, "Auto-cleaned outdated update APK: ${file.name}")
-                        }
+                    // Remove stale .tmp partial downloads
+                    if (name.endsWith(".tmp")) {
+                        file.delete()
+                        Log.d(TAG, "Cleaned partial download: $name")
+                        return@forEach
+                    }
+                    // Remove any file not matching our naming convention (stray duplicates)
+                    if (!(name.startsWith("FloatInput_v") && name.endsWith(".apk"))) {
+                        file.delete()
+                        Log.d(TAG, "Cleaned stray file: $name")
+                        return@forEach
+                    }
+                    // Remove APKs for current or older versions
+                    val fileVer = name.removePrefix("FloatInput_v").removeSuffix(".apk")
+                    if (!isNewerVersion(fileVer, currentVer)) {
+                        file.delete()
+                        Log.d(TAG, "Auto-cleaned outdated update APK: $name")
                     }
                 }
             } catch (e: Exception) {
@@ -187,6 +199,13 @@ class UpdateManager(private val context: Context) {
             return
         }
 
+        // 2. Prevent concurrent downloads
+        if (isDownloading) {
+            Log.w(TAG, "Download already in progress, ignoring duplicate request")
+            return
+        }
+        isDownloading = true
+
         thread {
             try {
                 val url = URL(info.downloadUrl)
@@ -223,12 +242,14 @@ class UpdateManager(private val context: Context) {
                 // Rename tmp to targetFile after complete download
                 if (targetFile.exists()) targetFile.delete()
                 tempFile.renameTo(targetFile)
+                isDownloading = false
 
                 mainHandler.post {
                     onComplete(targetFile)
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "downloadApk error", e)
+                isDownloading = false
                 mainHandler.post {
                     onError(e)
                 }
