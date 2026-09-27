@@ -21,3 +21,4 @@ vendor/bundle
 !app/keystore/release.jks
 release_apk/
 /release_apk/
+*.png

@@ -54,7 +54,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         updateManager = UpdateManager(this)
-        binding.tvCurrentVersion.text = "当前版本: v${updateManager.getCurrentVersionName()} (永久统一签名)"
+        // Clean single line without "(永久统一签名)"
+        binding.tvCurrentVersion.text = "当前版本: v${updateManager.getCurrentVersionName()}"
+
+        // Auto-clean any outdated APK caches
+        updateManager.autoCleanOldApks()
 
         setupWindowInsets()
         setupListeners()
@@ -75,7 +79,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainCoordinator) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.topToolbar.setPadding(0, systemBars.top, 0, 0)
+            // Apply top padding to AppBarLayout with spacious wrap_content toolbar
+            binding.appBarLayout.setPadding(0, systemBars.top, 0, 0)
             insets
         }
     }
@@ -103,6 +108,17 @@ class MainActivity : AppCompatActivity() {
         binding.switchService.setOnCheckedChangeListener { _, isChecked ->
             if (!isUpdatingSwitch && isChecked != FloatWindowService.isServiceRunning) {
                 toggleService()
+            }
+        }
+
+        // Project Home (GitHub) button
+        binding.btnVisitGithub.setOnClickListener {
+            HapticHelper.performClick(it)
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/yanzhe-Xiao/FloatInput"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法调起浏览器访问", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -156,10 +172,25 @@ class MainActivity : AppCompatActivity() {
                     binding.tvNewVersionTitle.text = "🎉 发现新版本: v${info.latestVersion}"
                     val sizeMb = if (info.apkSize > 0) String.format("%.2f MB", info.apkSize / (1024f * 1024f)) else "约 2 MB"
                     binding.tvChangelog.text = "安装包大小: $sizeMb\n\n更新说明:\n${info.changelog}"
+
+                    // Check if already downloaded!
+                    val cachedApk = updateManager.getCachedApk(info.latestVersion, info.apkSize)
+                    if (cachedApk != null) {
+                        binding.btnDownloadInstall.text = "立即覆盖安装 (安装包已就绪)"
+                        binding.pbDownload.visibility = View.GONE
+                        binding.tvDownloadProgress.visibility = View.VISIBLE
+                        binding.tvDownloadProgress.text = "安装包已在本地准备就绪，点击直接安装"
+                    } else {
+                        binding.btnDownloadInstall.text = "一键下载并直接覆盖安装"
+                        binding.pbDownload.visibility = View.GONE
+                        binding.tvDownloadProgress.visibility = View.GONE
+                    }
+
                     if (isManual) {
                         Toast.makeText(this, "发现新版本 v${info.latestVersion}！", Toast.LENGTH_SHORT).show()
                     }
                 } else {
+                    binding.layoutUpdateAvailable.visibility = View.GONE
                     if (isManual) {
                         Toast.makeText(this, "当前已是最新版本 (v${info.currentVersion})", Toast.LENGTH_SHORT).show()
                     }
@@ -173,6 +204,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startDownloadAndInstall(info: UpdateInfo) {
+        // 1. If already downloaded, directly install without re-downloading!
+        val cachedApk = updateManager.getCachedApk(info.latestVersion, info.apkSize)
+        if (cachedApk != null) {
+            binding.tvDownloadProgress.visibility = View.VISIBLE
+            binding.tvDownloadProgress.text = "安装包已在本地，正在调起系统安装器…"
+            val success = updateManager.installApk(cachedApk)
+            if (!success && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Toast.makeText(this, "请先允许「安装未知应用」权限以覆盖升级", Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
         if (info.downloadUrl.isEmpty()) {
             Toast.makeText(this, "未能获取到下载链接，请稍后再试", Toast.LENGTH_SHORT).show()
             return
@@ -185,13 +228,14 @@ class MainActivity : AppCompatActivity() {
         binding.tvDownloadProgress.text = "正在极速下载更新包: 0%"
 
         updateManager.downloadApk(
-            downloadUrl = info.downloadUrl,
+            info = info,
             onProgress = { percent, _ ->
                 binding.pbDownload.progress = percent
                 binding.tvDownloadProgress.text = "正在极速下载更新包: $percent%"
             },
             onComplete = { apkFile ->
                 binding.btnDownloadInstall.isEnabled = true
+                binding.btnDownloadInstall.text = "立即覆盖安装 (安装包已就绪)"
                 binding.tvDownloadProgress.text = "下载完成，正在调起系统安装器…"
                 val success = updateManager.installApk(apkFile)
                 if (!success && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

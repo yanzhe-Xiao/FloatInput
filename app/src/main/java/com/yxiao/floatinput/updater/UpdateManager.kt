@@ -33,23 +33,60 @@ class UpdateManager(private val context: Context) {
     fun getCurrentVersionName(): String {
         return try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            pInfo.versionName ?: "1.0.0"
+            pInfo.versionName ?: "1.4.0"
         } catch (_: Exception) {
-            "1.0.0"
+            "1.4.0"
         }
     }
 
-    fun getCurrentVersionCode(): Long {
-        return try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                pInfo.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                pInfo.versionCode.toLong()
+    fun getUpdatesDir(): File {
+        val dir = File(context.cacheDir, "updates")
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
+    }
+
+    /**
+     * Checks if the update APK has already been downloaded and verified
+     */
+    fun getCachedApk(version: String, expectedSize: Long): File? {
+        try {
+            val file = File(getUpdatesDir(), "FloatInput_v$version.apk")
+            if (file.exists() && file.isFile) {
+                if (expectedSize <= 0 || file.length() == expectedSize) {
+                    return file
+                }
             }
-        } catch (_: Exception) {
-            1L
+        } catch (e: Exception) {
+            Log.e(TAG, "getCachedApk error", e)
+        }
+        return null
+    }
+
+    /**
+     * Automatically deletes old or already-installed APK files in cacheDir/updates
+     */
+    fun autoCleanOldApks() {
+        thread {
+            try {
+                val dir = File(context.cacheDir, "updates")
+                if (!dir.exists()) return@thread
+                val currentVer = getCurrentVersionName()
+                dir.listFiles()?.forEach { file ->
+                    val name = file.name
+                    if (name.startsWith("FloatInput_v") && name.endsWith(".apk")) {
+                        val fileVer = name.removePrefix("FloatInput_v").removeSuffix(".apk")
+                        // If file version is equal to or older than current installed version, delete it!
+                        if (!isNewerVersion(fileVer, currentVer)) {
+                            file.delete()
+                            Log.d(TAG, "Auto-cleaned outdated update APK: ${file.name}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "autoCleanOldApks error", e)
+            }
         }
     }
 
@@ -90,7 +127,6 @@ class UpdateManager(private val context: Context) {
                                 break
                             }
                         }
-                        // Fallback to any apk asset if specific release apk not found
                         if (downloadUrl.isEmpty()) {
                             for (i in 0 until assets.length()) {
                                 val asset = assets.getJSONObject(i)
@@ -134,17 +170,26 @@ class UpdateManager(private val context: Context) {
     }
 
     /**
-     * Downloads the APK file with progress callback
+     * Downloads the APK file to cacheDir/updates/FloatInput_v{version}.apk
+     * If the file is already completely downloaded, skips downloading and returns it immediately!
      */
     fun downloadApk(
-        downloadUrl: String,
+        info: UpdateInfo,
         onProgress: (progress: Int, totalBytes: Long) -> Unit,
         onComplete: (File) -> Unit,
         onError: (Throwable) -> Unit
     ) {
+        // 1. Check if already downloaded!
+        val cached = getCachedApk(info.latestVersion, info.apkSize)
+        if (cached != null) {
+            Log.d(TAG, "APK already cached and valid, skipping download: ${cached.absolutePath}")
+            onComplete(cached)
+            return
+        }
+
         thread {
             try {
-                val url = URL(downloadUrl)
+                val url = URL(info.downloadUrl)
                 val conn = url.openConnection() as HttpURLConnection
                 conn.connectTimeout = 15000
                 conn.readTimeout = 30000
@@ -152,11 +197,12 @@ class UpdateManager(private val context: Context) {
                 conn.setRequestProperty("User-Agent", "FloatInput-Android")
 
                 val totalLength = conn.contentLength.toLong()
-                val outFile = File(context.cacheDir, "FloatInput_latest.apk")
-                if (outFile.exists()) outFile.delete()
+                val targetFile = File(getUpdatesDir(), "FloatInput_v${info.latestVersion}.apk")
+                val tempFile = File(getUpdatesDir(), "FloatInput_v${info.latestVersion}.tmp")
+                if (tempFile.exists()) tempFile.delete()
 
                 conn.inputStream.use { input ->
-                    FileOutputStream(outFile).use { output ->
+                    FileOutputStream(tempFile).use { output ->
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         var downloaded = 0L
@@ -174,8 +220,12 @@ class UpdateManager(private val context: Context) {
                     }
                 }
 
+                // Rename tmp to targetFile after complete download
+                if (targetFile.exists()) targetFile.delete()
+                tempFile.renameTo(targetFile)
+
                 mainHandler.post {
-                    onComplete(outFile)
+                    onComplete(targetFile)
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "downloadApk error", e)

@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.Point
 import android.os.Build
@@ -78,6 +79,11 @@ class FloatingOverlayManager(private val context: Context) {
         updateScreenDimensions()
         initCapsule()
         initCard()
+    }
+
+    private fun isNightMode(): Boolean {
+        val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return mode == Configuration.UI_MODE_NIGHT_YES
     }
 
     private fun updateScreenDimensions() {
@@ -157,15 +163,55 @@ class FloatingOverlayManager(private val context: Context) {
         val capsule = capsuleView ?: return
         val vVisualHandle = capsule.findViewById<View>(R.id.vVisualHandle) ?: return
         val lp = vVisualHandle.layoutParams as? FrameLayout.LayoutParams ?: return
+        val isNight = isNightMode()
 
         if (prefs.isDockedLeft) {
             lp.gravity = Gravity.CENTER_VERTICAL or Gravity.START
             vVisualHandle.layoutParams = lp
-            vVisualHandle.setBackgroundResource(R.drawable.bg_sidebar_handle_left)
+            vVisualHandle.setBackgroundResource(
+                if (isNight) R.drawable.bg_sidebar_handle_left else R.drawable.bg_sidebar_handle_left_light
+            )
         } else {
             lp.gravity = Gravity.CENTER_VERTICAL or Gravity.END
             vVisualHandle.layoutParams = lp
-            vVisualHandle.setBackgroundResource(R.drawable.bg_sidebar_handle_right)
+            vVisualHandle.setBackgroundResource(
+                if (isNight) R.drawable.bg_sidebar_handle_right else R.drawable.bg_sidebar_handle_right_light
+            )
+        }
+    }
+
+    /**
+     * Adapts floating card and sidebar handle colors dynamically based on Day/Night mode
+     */
+    private fun applyThemeToOverlay() {
+        updateCapsuleBackground()
+
+        val card = cardView ?: return
+        val isNight = isNightMode()
+
+        val cardRoot = card.findViewById<FrameLayout>(R.id.cardRoot)
+        val etInput = card.findViewById<EditText>(R.id.etInput)
+        val layoutInputContainer = card.findViewById<FrameLayout>(R.id.layoutInputContainer)
+        val ivDragHandle = card.findViewById<View>(R.id.ivDragHandle)
+        val tvCharCount = card.findViewById<TextView>(R.id.tvCharCount)
+        val ivClearIcon = card.findViewById<ImageView>(R.id.ivClearIcon)
+
+        if (isNight) {
+            cardRoot?.setBackgroundResource(R.drawable.bg_glassmorphic_card_dark)
+            layoutInputContainer?.setBackgroundResource(R.drawable.bg_input_box_dark)
+            etInput?.setTextColor(0xFFF8FAFC.toInt())
+            etInput?.setHintTextColor(0xFF475569.toInt())
+            tvCharCount?.setTextColor(0xFF64748B.toInt())
+            ivDragHandle?.setBackgroundResource(R.drawable.bg_drag_pill)
+            ivClearIcon?.setColorFilter(0xFFF87171.toInt())
+        } else {
+            cardRoot?.setBackgroundResource(R.drawable.bg_glassmorphic_card_light)
+            layoutInputContainer?.setBackgroundResource(R.drawable.bg_input_box_light)
+            etInput?.setTextColor(0xFF0F172A.toInt())
+            etInput?.setHintTextColor(0xFF94A3B8.toInt())
+            tvCharCount?.setTextColor(0xFF94A3B8.toInt())
+            ivDragHandle?.setBackgroundColor(0x33000000.toInt())
+            ivClearIcon?.setColorFilter(0xFFEF4444.toInt())
         }
     }
 
@@ -240,7 +286,6 @@ class FloatingOverlayManager(private val context: Context) {
                         val dy = event.rawY - initialTouchY
 
                         // 1. INWARD SWIPE GESTURE (向屏幕内划动)
-                        // Trigger threshold is low (8dp ~ 24px) for instantaneous response!
                         val swipeThreshold = 8 * density
                         if (!hasSwipedInward) {
                             if (prefs.isDockedLeft && dx > swipeThreshold) {
@@ -335,6 +380,7 @@ class FloatingOverlayManager(private val context: Context) {
             }
 
             bindCardViews()
+            applyThemeToOverlay()
         } catch (e: Exception) {
             Log.e(TAG, "initCard error", e)
         }
@@ -357,11 +403,8 @@ class FloatingOverlayManager(private val context: Context) {
         val tvCharCount = card.findViewById<TextView>(R.id.tvCharCount)
         val btnCopy = card.findViewById<View>(R.id.btnCopy)
         val btnClear = card.findViewById<View>(R.id.btnClear)
-        val btnCollapse = card.findViewById<ImageView>(R.id.btnCollapse)
-        val btnClose = card.findViewById<ImageView>(R.id.btnClose)
         val layoutHeader = card.findViewById<View>(R.id.layoutHeader)
         val ivCopyIcon = card.findViewById<ImageView>(R.id.ivCopyIcon)
-        val tvCopyText = card.findViewById<TextView>(R.id.tvCopyText)
 
         // 1. Text input settings: standard multiline text, no secure/password keyboard
         etInput.inputType = InputType.TYPE_CLASS_TEXT or
@@ -389,7 +432,7 @@ class FloatingOverlayManager(private val context: Context) {
             false
         }
 
-        // 2. Copy Function
+        // 2. Compact Copy Icon Button
         btnCopy.setOnClickListener {
             val content = etInput.text?.toString() ?: ""
             if (content.isEmpty()) {
@@ -408,10 +451,9 @@ class FloatingOverlayManager(private val context: Context) {
 
                 // Micro-animation on copy button
                 ivCopyIcon.setImageResource(R.drawable.ic_check)
-                tvCopyText.text = "已复制"
                 btnCopy.animate()
-                    .scaleX(0.92f)
-                    .scaleY(0.92f)
+                    .scaleX(0.85f)
+                    .scaleY(0.85f)
                     .setDuration(100)
                     .withEndAction {
                         btnCopy.animate()
@@ -424,7 +466,6 @@ class FloatingOverlayManager(private val context: Context) {
 
                 btnCopy.postDelayed({
                     ivCopyIcon.setImageResource(R.drawable.ic_copy)
-                    tvCopyText.text = context.getString(R.string.action_copy)
                 }, 1200)
 
                 // Android 13+ has native clipboard toast, show manual Toast for 12 and below
@@ -436,33 +477,36 @@ class FloatingOverlayManager(private val context: Context) {
             }
         }
 
-        // 3. Clear Function
+        // 3. Compact Clear Icon Button
         btnClear.setOnClickListener {
             if (etInput.text.isNotEmpty()) {
                 etInput.text?.clear()
                 prefs.savedDraftText = ""
                 HapticHelper.performClick(btnClear)
                 HapticHelper.vibrateClear(context)
+
+                // Micro-animation on clear button
+                btnClear.animate()
+                    .scaleX(0.85f)
+                    .scaleY(0.85f)
+                    .setDuration(100)
+                    .withEndAction {
+                        btnClear.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(120)
+                            .setInterpolator(OvershootInterpolator())
+                            .start()
+                    }.start()
+
                 Toast.makeText(context, R.string.cleared_content, Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Collapse to Sidebar (Method 1: Click button)
-        btnCollapse.setOnClickListener {
-            HapticHelper.performClick(btnCollapse)
-            collapseToSidebar()
-        }
-
-        // Close Floating Window
-        btnClose.setOnClickListener {
-            HapticHelper.performClick(btnClose)
-            onCloseRequested?.invoke()
-        }
-
-        // Dragging Card & Edge-Snapping (Method 2: Drag to edge to collapse)
+        // Dragging Card via the ultra-slim Top Header (Drag pill area)
         setupCardDragListener(layoutHeader)
 
-        // Tap outside card -> Collapse to sidebar! (Method 3: Click outside to collapse)
+        // Tap outside card -> Collapse to sidebar!
         cardView?.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
                 hideSoftKeyboard()
@@ -547,8 +591,7 @@ class FloatingOverlayManager(private val context: Context) {
                             }
 
                             // FIXED DOCKING SIDE:
-                            // Do NOT change sides on minor drags!
-                            // Only switch sides if user intentionally dragged past the opposite third of screen!
+                            // Only switch sides if user intentionally dragged past opposite third of screen!
                             if (prefs.isDockedLeft) {
                                 if (cardParams.x > screenWidth / 3) {
                                     prefs.isDockedLeft = false
@@ -618,6 +661,9 @@ class FloatingOverlayManager(private val context: Context) {
             isTransitioning = false
             return
         }
+
+        // Apply theme before expanding
+        applyThemeToOverlay()
 
         // Position card comfortably inside screen
         val cardWidth = cardParams.width
@@ -701,8 +747,7 @@ class FloatingOverlayManager(private val context: Context) {
             .setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    // CRUCIAL FIX: Set GONE immediately so SurfaceFlinger NEVER draws it again
-                    // Do NOT reset translationX to 0 here! That was what caused the 1-frame pop-back glitch!
+                    // Set GONE immediately so SurfaceFlinger NEVER draws it again
                     card.visibility = View.GONE
                     card.setLayerType(View.LAYER_TYPE_NONE, null)
                     detachViewSafe(cardView)
@@ -774,6 +819,7 @@ class FloatingOverlayManager(private val context: Context) {
 
     fun onConfigurationChanged() {
         updateScreenDimensions()
+        applyThemeToOverlay()
         if (isExpanded) {
             cardParams.x = cardParams.x.coerceIn(10, max(10, screenWidth - cardParams.width - 10))
             cardParams.y = cardParams.y.coerceIn(statusBarHeight, max(statusBarHeight, screenHeight - navBarHeight - 200))
