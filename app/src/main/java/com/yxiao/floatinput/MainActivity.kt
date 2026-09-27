@@ -24,6 +24,8 @@ import com.yxiao.floatinput.updater.UpdateInfo
 import com.yxiao.floatinput.updater.UpdateManager
 import com.yxiao.floatinput.util.AppCrashHandler
 import com.yxiao.floatinput.util.HapticHelper
+import androidx.appcompat.app.AppCompatDelegate
+import com.yxiao.floatinput.util.PreferencesHelper
 
 class MainActivity : AppCompatActivity() {
 
@@ -61,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         updateManager.autoCleanOldApks()
 
         setupWindowInsets()
+        setupThemeToggle()
         setupListeners()
         setupUpdateListeners()
 
@@ -141,6 +144,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupThemeToggle() {
+        val prefs = PreferencesHelper.getInstance(this)
+        // Set initial selection without triggering listener
+        val checkedId = when (prefs.themeMode) {
+            PreferencesHelper.THEME_LIGHT  -> R.id.btnThemeLight
+            PreferencesHelper.THEME_DARK   -> R.id.btnThemeDark
+            else                           -> R.id.btnThemeSystem
+        }
+        binding.toggleThemeGroup.check(checkedId)
+
+        binding.toggleThemeGroup.addOnButtonCheckedListener { _, id, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val mode = when (id) {
+                R.id.btnThemeLight -> PreferencesHelper.THEME_LIGHT
+                R.id.btnThemeDark  -> PreferencesHelper.THEME_DARK
+                else               -> PreferencesHelper.THEME_SYSTEM
+            }
+            prefs.themeMode = mode
+            val nightMode = when (mode) {
+                PreferencesHelper.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                PreferencesHelper.THEME_DARK  -> AppCompatDelegate.MODE_NIGHT_YES
+                else                          -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            AppCompatDelegate.setDefaultNightMode(nightMode)
+            if (FloatWindowService.isServiceRunning) FloatWindowService.refreshTheme(this)
+        }
+    }
+
     private fun setupUpdateListeners() {
         binding.btnCheckUpdate.setOnClickListener {
             HapticHelper.performClick(it)
@@ -176,12 +207,11 @@ class MainActivity : AppCompatActivity() {
                     // Check if already downloaded!
                     val cachedApk = updateManager.getCachedApk(info.latestVersion, info.apkSize)
                     if (cachedApk != null) {
-                        binding.btnDownloadInstall.text = "立即覆盖安装 (安装包已就绪)"
+                        binding.btnDownloadInstall.text = "立即安装"
                         binding.pbDownload.visibility = View.GONE
-                        binding.tvDownloadProgress.visibility = View.VISIBLE
-                        binding.tvDownloadProgress.text = "安装包已在本地准备就绪，点击直接安装"
+                        binding.tvDownloadProgress.visibility = View.GONE
                     } else {
-                        binding.btnDownloadInstall.text = "一键下载并直接覆盖安装"
+                        binding.btnDownloadInstall.text = "下载更新"
                         binding.pbDownload.visibility = View.GONE
                         binding.tvDownloadProgress.visibility = View.GONE
                     }
@@ -235,7 +265,7 @@ class MainActivity : AppCompatActivity() {
             },
             onComplete = { apkFile ->
                 binding.btnDownloadInstall.isEnabled = true
-                binding.btnDownloadInstall.text = "立即覆盖安装 (安装包已就绪)"
+                binding.btnDownloadInstall.text = "立即安装"
                 binding.tvDownloadProgress.text = "下载完成，正在调起系统安装器…"
                 val success = updateManager.installApk(apkFile)
                 if (!success && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

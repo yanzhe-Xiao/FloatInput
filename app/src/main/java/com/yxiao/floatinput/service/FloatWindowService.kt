@@ -27,6 +27,7 @@ class FloatWindowService : Service() {
         const val ACTION_START = "com.yxiao.floatinput.action.START"
         const val ACTION_STOP = "com.yxiao.floatinput.action.STOP"
         const val ACTION_TOGGLE = "com.yxiao.floatinput.action.TOGGLE"
+        const val ACTION_REFRESH_THEME = "com.yxiao.floatinput.action.REFRESH_THEME"
 
         const val CHANNEL_ID = "channel_float_input_service"
         const val NOTIFICATION_ID = 1001
@@ -72,6 +73,15 @@ class FloatWindowService : Service() {
                 Log.e("FloatWindowService", "toggleService failed", e)
             }
         }
+
+        fun refreshTheme(context: Context) {
+            val intent = Intent(context, FloatWindowService::class.java).apply {
+                action = ACTION_REFRESH_THEME
+            }
+            try {
+                context.startService(intent)
+            } catch (_: Exception) {}
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -110,6 +120,9 @@ class FloatWindowService : Service() {
                 }
                 ACTION_START -> {
                     overlayManager?.show()
+                }
+                ACTION_REFRESH_THEME -> {
+                    overlayManager?.refreshTheme()
                 }
             }
         } catch (e: Throwable) {

@@ -82,8 +82,18 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     private fun isNightMode(): Boolean {
-        val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return mode == Configuration.UI_MODE_NIGHT_YES
+        return when (prefs.themeMode) {
+            PreferencesHelper.THEME_LIGHT -> false
+            PreferencesHelper.THEME_DARK  -> true
+            else -> {
+                val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                mode == Configuration.UI_MODE_NIGHT_YES
+            }
+        }
+    }
+
+    fun refreshTheme() {
+        applyThemeToOverlay()
     }
 
     private fun updateScreenDimensions() {

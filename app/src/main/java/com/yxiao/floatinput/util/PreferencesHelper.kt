@@ -30,6 +30,10 @@ class PreferencesHelper(context: Context) {
     var savedDraftText: String
         get() = prefs.getString(KEY_DRAFT_TEXT, "") ?: ""
         set(value) = prefs.edit().putString(KEY_DRAFT_TEXT, value).apply()
+    var themeMode: Int
+        get() = prefs.getInt(KEY_THEME_MODE, THEME_SYSTEM)
+        set(value) = prefs.edit().putInt(KEY_THEME_MODE, value).apply()
+
 
     companion object {
         private const val PREF_NAME = "float_input_prefs"
@@ -39,6 +43,11 @@ class PreferencesHelper(context: Context) {
         private const val KEY_CARD_Y = "key_card_y"
         private const val KEY_IS_EXPANDED = "key_is_expanded"
         private const val KEY_DRAFT_TEXT = "key_draft_text"
+        const val KEY_THEME_MODE = "key_theme_mode"
+        const val THEME_SYSTEM = 0
+        const val THEME_LIGHT = 1
+        const val THEME_DARK = 2
+
 
         @Volatile
         private var instance: PreferencesHelper? = null

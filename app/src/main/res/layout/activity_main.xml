@@ -22,7 +22,7 @@
             android:minHeight="?attr/actionBarSize"
             android:paddingVertical="4dp"
             app:title="@string/app_name_full"
-            app:subtitle="v1.5.0 · 极简侧边浮窗"
+            app:subtitle="v1.6.0 · 极简侧边浮窗"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium"
             app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -169,6 +169,66 @@
                         app:cornerRadius="14dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            <!-- Theme Selection Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="外观主题"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggleThemeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnThemeSystem"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="跟随系统"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnThemeLight"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="日间模式"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnThemeDark"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="夜间模式"
+                            android:textSize="12sp" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
 
             <!-- Permissions Card -->
             <com.google.android.material.card.MaterialCardView
@@ -309,7 +369,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="版本更新与免卸载覆盖"
+                                android:text="版本更新"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                                 android:textStyle="bold" />
 
@@ -318,7 +378,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="3dp"
-                                android:text="当前版本: v1.5.0"
+                                android:text="当前版本: v1.6.0"
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                                 android:textColor="?attr/colorPrimary" />
                         </LinearLayout>
@@ -386,7 +446,7 @@
                             android:layout_height="48dp"
                             android:layout_marginTop="10dp"
                             android:backgroundTint="#10B981"
-                            android:text="一键下载并直接覆盖安装"
+                            android:text="下载更新"
                             android:textColor="#FFFFFF"
                             app:cornerRadius="10dp" />
                     </LinearLayout>
