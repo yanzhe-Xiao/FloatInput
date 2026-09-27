@@ -33,8 +33,8 @@
     <string name="feat_2_desc">轻触复制按钮即刻将输入文本存入系统剪贴板，提供清脆触感反馈与平滑动画。</string>
     <string name="feat_3_title">3. 一键快速清空</string>
     <string name="feat_3_desc">一键重置当前输入栏文本，光标自动归位，高效省心。</string>
-    <string name="feat_edge_title">侧边栏贴边模式</string>
-    <string name="feat_edge_desc">点击顶栏折叠按钮或拖动至屏幕边缘，浮窗即可吸附为极简胶囊把手，不阻挡屏幕背景操作；轻触把手立即展开。</string>
+    <string name="feat_edge_title">侧边栏贴边隐形与向内划动手势</string>
+    <string name="feat_edge_desc">浮窗可半隐形吸附于屏幕左/右边框，收起时伴随微光脉冲呼吸灯提示停靠位置；需要输入时，直接从边框把手向屏幕内划动（或轻触）即可瞬间滑出输入面板，绝不回弹！</string>
 
     <!-- Notification -->
     <string name="notification_channel_name">悬浮窗前台常驻通知</string>

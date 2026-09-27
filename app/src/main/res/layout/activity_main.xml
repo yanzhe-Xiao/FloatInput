@@ -20,7 +20,9 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name_full"
-            app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium" />
+            app:subtitle="v1.1.0 · Android 15 侧边隐藏手势版"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium"
+            app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
