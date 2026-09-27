@@ -10,9 +10,11 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.graphics.Point
 import android.os.Build
+import android.provider.Settings
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -28,7 +30,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.appcompat.view.ContextThemeWrapper
 import com.yxiao.floatinput.R
 import com.yxiao.floatinput.util.HapticHelper
 import com.yxiao.floatinput.util.PreferencesHelper
@@ -38,10 +40,14 @@ import kotlin.math.min
 
 class FloatingOverlayManager(private val context: Context) {
 
+    private val TAG = "FloatingOverlayManager"
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     private val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
     private val prefs = PreferencesHelper.getInstance(context)
+
+    // Themed context ensures Material/AppCompat attributes inflate safely in a Service!
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_FloatInput)
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
@@ -72,26 +78,35 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     private fun updateScreenDimensions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val metrics = windowManager.currentWindowMetrics
-            val bounds = metrics.bounds
-            screenWidth = bounds.width()
-            screenHeight = bounds.height()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val metrics = windowManager.currentWindowMetrics
+                val bounds = metrics.bounds
+                screenWidth = bounds.width()
+                screenHeight = bounds.height()
 
-            val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
-                WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
-            )
-            statusBarHeight = insets.top
-            navBarHeight = insets.bottom
-        } else {
-            val display = windowManager.defaultDisplay
-            val size = Point()
-            @Suppress("DEPRECATION")
-            display.getRealSize(size)
-            screenWidth = size.x
-            screenHeight = size.y
-            statusBarHeight = (24 * context.resources.displayMetrics.density).toInt()
-            navBarHeight = (48 * context.resources.displayMetrics.density).toInt()
+                val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                )
+                statusBarHeight = insets.top
+                navBarHeight = insets.bottom
+            } else {
+                val display = windowManager.defaultDisplay
+                val size = Point()
+                @Suppress("DEPRECATION")
+                display.getRealSize(size)
+                screenWidth = size.x
+                screenHeight = size.y
+                statusBarHeight = (24 * context.resources.displayMetrics.density).toInt()
+                navBarHeight = (48 * context.resources.displayMetrics.density).toInt()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateScreenDimensions error", e)
+            val dm = context.resources.displayMetrics
+            screenWidth = dm.widthPixels
+            screenHeight = dm.heightPixels
+            statusBarHeight = (24 * dm.density).toInt()
+            navBarHeight = (48 * dm.density).toInt()
         }
     }
 
@@ -106,27 +121,31 @@ class FloatingOverlayManager(private val context: Context) {
 
     @SuppressLint("InflateParams")
     private fun initCapsule() {
-        val inflater = LayoutInflater.from(context)
-        capsuleView = inflater.inflate(R.layout.view_sidebar_capsule, null)
+        try {
+            val inflater = LayoutInflater.from(themedContext)
+            capsuleView = inflater.inflate(R.layout.view_sidebar_capsule, null)
 
-        val capsuleWidthPx = (32 * context.resources.displayMetrics.density).toInt()
-        val capsuleHeightPx = (64 * context.resources.displayMetrics.density).toInt()
+            val capsuleWidthPx = (32 * context.resources.displayMetrics.density).toInt()
+            val capsuleHeightPx = (64 * context.resources.displayMetrics.density).toInt()
 
-        capsuleParams = WindowManager.LayoutParams(
-            capsuleWidthPx,
-            capsuleHeightPx,
-            getOverlayWindowType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = if (prefs.isDockedLeft) 0 else (screenWidth - capsuleWidthPx)
-            y = prefs.dockedY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - capsuleHeightPx - 50)
+            capsuleParams = WindowManager.LayoutParams(
+                capsuleWidthPx,
+                capsuleHeightPx,
+                getOverlayWindowType(),
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = if (prefs.isDockedLeft) 0 else (screenWidth - capsuleWidthPx)
+                y = prefs.dockedY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - capsuleHeightPx - 50)
+            }
+
+            setupCapsuleTouchListener()
+        } catch (e: Exception) {
+            Log.e(TAG, "initCapsule error", e)
         }
-
-        setupCapsuleTouchListener()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -204,30 +223,34 @@ class FloatingOverlayManager(private val context: Context) {
 
     @SuppressLint("InflateParams", "ClickableViewAccessibility")
     private fun initCard() {
-        val inflater = LayoutInflater.from(context)
-        cardView = inflater.inflate(R.layout.view_floating_card, null)
+        try {
+            val inflater = LayoutInflater.from(themedContext)
+            cardView = inflater.inflate(R.layout.view_floating_card, null)
 
-        val cardWidthPx = min(
-            (310 * context.resources.displayMetrics.density).toInt(),
-            (screenWidth * 0.90f).toInt()
-        )
+            val cardWidthPx = min(
+                (310 * context.resources.displayMetrics.density).toInt(),
+                (screenWidth * 0.90f).toInt()
+            )
 
-        cardParams = WindowManager.LayoutParams(
-            cardWidthPx,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            getOverlayWindowType(),
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-            x = prefs.cardX.coerceIn(20, max(20, screenWidth - cardWidthPx - 20))
-            y = prefs.cardY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 350)
+            cardParams = WindowManager.LayoutParams(
+                cardWidthPx,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                getOverlayWindowType(),
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                x = prefs.cardX.coerceIn(20, max(20, screenWidth - cardWidthPx - 20))
+                y = prefs.cardY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 350)
+            }
+
+            bindCardViews()
+        } catch (e: Exception) {
+            Log.e(TAG, "initCard error", e)
         }
-
-        bindCardViews()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -280,36 +303,40 @@ class FloatingOverlayManager(private val context: Context) {
             }
 
             // Put in clipboard
-            val clip = ClipData.newPlainText("FloatInput", content)
-            clipboardManager.setPrimaryClip(clip)
+            try {
+                val clip = ClipData.newPlainText("FloatInput", content)
+                clipboardManager.setPrimaryClip(clip)
 
-            HapticHelper.performConfirm(btnCopy)
-            HapticHelper.vibrateShort(context)
+                HapticHelper.performConfirm(btnCopy)
+                HapticHelper.vibrateShort(context)
 
-            // Micro-animation on copy button
-            ivCopyIcon.setImageResource(R.drawable.ic_launcher_foreground)
-            tvCopyText.text = "已复制"
-            btnCopy.animate()
-                .scaleX(0.92f)
-                .scaleY(0.92f)
-                .setDuration(100)
-                .withEndAction {
-                    btnCopy.animate()
-                        .scaleX(1.0f)
-                        .scaleY(1.0f)
-                        .setDuration(120)
-                        .setInterpolator(OvershootInterpolator())
-                        .start()
-                }.start()
+                // Micro-animation on copy button
+                ivCopyIcon.setImageResource(R.drawable.ic_check)
+                tvCopyText.text = "已复制"
+                btnCopy.animate()
+                    .scaleX(0.92f)
+                    .scaleY(0.92f)
+                    .setDuration(100)
+                    .withEndAction {
+                        btnCopy.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(120)
+                            .setInterpolator(OvershootInterpolator())
+                            .start()
+                    }.start()
 
-            btnCopy.postDelayed({
-                ivCopyIcon.setImageResource(R.drawable.ic_copy)
-                tvCopyText.text = context.getString(R.string.action_copy)
-            }, 1200)
+                btnCopy.postDelayed({
+                    ivCopyIcon.setImageResource(R.drawable.ic_copy)
+                    tvCopyText.text = context.getString(R.string.action_copy)
+                }, 1200)
 
-            // Android 13+ has native clipboard toast, show manual Toast for 12 and below
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
+                // Android 13+ has native clipboard toast, show manual Toast for 12 and below
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "copy failed", e)
             }
         }
 
@@ -409,6 +436,10 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     fun show() {
+        if (!Settings.canDrawOverlays(context)) {
+            Log.w(TAG, "Cannot show overlay: SYSTEM_ALERT_WINDOW permission not granted")
+            return
+        }
         if (isAttached) return
         isAttached = true
         isExpanded = prefs.isExpanded
@@ -507,42 +538,56 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     private fun attachCapsule() {
-        if (capsuleView?.windowToken == null) {
+        if (!Settings.canDrawOverlays(context)) return
+        val capsule = capsuleView ?: return
+        if (!capsule.isAttachedToWindow) {
             try {
-                windowManager.addView(capsuleView, capsuleParams)
-            } catch (_: Exception) {}
+                windowManager.addView(capsule, capsuleParams)
+            } catch (e: Exception) {
+                Log.e(TAG, "attachCapsule error", e)
+            }
         }
     }
 
     private fun attachCard() {
-        if (cardView?.windowToken == null) {
+        if (!Settings.canDrawOverlays(context)) return
+        val card = cardView ?: return
+        if (!card.isAttachedToWindow) {
             try {
-                windowManager.addView(cardView, cardParams)
-            } catch (_: Exception) {}
+                windowManager.addView(card, cardParams)
+            } catch (e: Exception) {
+                Log.e(TAG, "attachCard error", e)
+            }
         }
     }
 
     private fun detachViewSafe(view: View?) {
-        if (view != null && view.windowToken != null) {
+        if (view != null && view.isAttachedToWindow) {
             try {
                 windowManager.removeView(view)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e(TAG, "detachViewSafe error", e)
+            }
         }
     }
 
     private fun updateViewLayoutSafe(view: View?, params: ViewGroup.LayoutParams) {
-        if (view != null && view.windowToken != null) {
+        if (view != null && view.isAttachedToWindow) {
             try {
                 windowManager.updateViewLayout(view, params)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e(TAG, "updateViewLayoutSafe error", e)
+            }
         }
     }
 
     private fun hideSoftKeyboard() {
-        val input = cardView?.findViewById<EditText>(R.id.etInput)
-        if (input != null && input.windowToken != null) {
-            imm?.hideSoftInputFromWindow(input.windowToken, 0)
-        }
+        try {
+            val input = cardView?.findViewById<EditText>(R.id.etInput)
+            if (input != null && input.windowToken != null) {
+                imm?.hideSoftInputFromWindow(input.windowToken, 0)
+            }
+        } catch (_: Exception) {}
     }
 
     fun onConfigurationChanged() {

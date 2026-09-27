@@ -1,6 +1,9 @@
 package com.yxiao.floatinput
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -17,16 +20,21 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.yxiao.floatinput.databinding.ActivityMainBinding
 import com.yxiao.floatinput.service.FloatWindowService
+import com.yxiao.floatinput.util.AppCrashHandler
 import com.yxiao.floatinput.util.HapticHelper
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var isUpdatingSwitch = false
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
+    ) { granted ->
         updateUiState()
+        if (granted && hasOverlayPermission()) {
+            FloatWindowService.start(this)
+        }
     }
 
     private val overlayPermissionLauncher = registerForActivityResult(
@@ -48,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUiState()
+        checkAndDisplayCrashReport()
     }
 
     private fun setupWindowInsets() {
@@ -77,11 +86,39 @@ class MainActivity : AppCompatActivity() {
             toggleService()
         }
 
-        // Switch
+        // Switch toggle
         binding.switchService.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked != FloatWindowService.isServiceRunning) {
+            if (!isUpdatingSwitch && isChecked != FloatWindowService.isServiceRunning) {
                 toggleService()
             }
+        }
+
+        // Crash log buttons
+        binding.btnCopyCrash.setOnClickListener {
+            val crash = AppCrashHandler.getLastCrash(this)
+            if (!crash.isNullOrEmpty()) {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("CrashLog", crash))
+                Toast.makeText(this, "崩溃日志已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                HapticHelper.performConfirm(it)
+            }
+        }
+
+        binding.btnClearCrash.setOnClickListener {
+            AppCrashHandler.clearCrash(this)
+            binding.cardCrashReport.visibility = View.GONE
+            Toast.makeText(this, "崩溃日志已清除", Toast.LENGTH_SHORT).show()
+            HapticHelper.performClick(it)
+        }
+    }
+
+    private fun checkAndDisplayCrashReport() {
+        val lastCrash = AppCrashHandler.getLastCrash(this)
+        if (!lastCrash.isNullOrEmpty()) {
+            binding.cardCrashReport.visibility = View.VISIBLE
+            binding.tvCrashContent.text = lastCrash
+        } else {
+            binding.cardCrashReport.visibility = View.GONE
         }
     }
 
@@ -126,22 +163,29 @@ class MainActivity : AppCompatActivity() {
         if (!hasOverlayPermission()) {
             Toast.makeText(this, R.string.permission_overlay_required, Toast.LENGTH_SHORT).show()
             requestOverlayPermission()
+            updateUiState()
             return
         }
 
         if (FloatWindowService.isServiceRunning) {
             FloatWindowService.stop(this)
         } else {
-            // Request notification permission if not yet granted on Android 13+
+            // If on Android 13+ and no notification permission, request it first
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
             }
-            FloatWindowService.start(this)
+            try {
+                FloatWindowService.start(this)
+            } catch (e: Throwable) {
+                AppCrashHandler.saveCrash(this, e)
+                Toast.makeText(this, "启动服务发生异常: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
 
         binding.root.postDelayed({
             updateUiState()
-        }, 150)
+        }, 200)
     }
 
     private fun updateUiState() {
@@ -181,8 +225,11 @@ class MainActivity : AppCompatActivity() {
             binding.tvNotifPermStatus.text = "默认支持"
         }
 
-        // Service running status
+        // Service running status without triggering loop
+        isUpdatingSwitch = true
         binding.switchService.isChecked = isRunning
+        isUpdatingSwitch = false
+
         if (isRunning) {
             binding.tvServiceStatus.text = getString(R.string.status_running)
             binding.tvServiceStatus.setTextColor(ContextCompat.getColor(this, R.color.color_copy))
