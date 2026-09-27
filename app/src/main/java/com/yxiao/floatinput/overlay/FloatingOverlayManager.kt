@@ -2,7 +2,6 @@ package com.yxiao.floatinput.overlay
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -18,6 +17,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
@@ -27,11 +27,11 @@ import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.view.ContextThemeWrapper
-import androidx.core.content.ContextCompat
 import com.yxiao.floatinput.R
 import com.yxiao.floatinput.util.HapticHelper
 import com.yxiao.floatinput.util.PreferencesHelper
@@ -128,11 +128,13 @@ class FloatingOverlayManager(private val context: Context) {
             val inflater = LayoutInflater.from(themedContext)
             capsuleView = inflater.inflate(R.layout.view_sidebar_capsule, null)
 
-            val handleWidthPx = (26 * density).toInt()
-            val handleHeightPx = (76 * density).toInt()
+            // Touch target width is 48dp (Google Material Design standard touch size)
+            // While the visual handle inside is only 22dp and tucked to the edge
+            val handleTouchWidthPx = (48 * density).toInt()
+            val handleHeightPx = (80 * density).toInt()
 
             capsuleParams = WindowManager.LayoutParams(
-                handleWidthPx,
+                handleTouchWidthPx,
                 handleHeightPx,
                 getOverlayWindowType(),
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -141,7 +143,7 @@ class FloatingOverlayManager(private val context: Context) {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                x = if (prefs.isDockedLeft) 0 else (screenWidth - handleWidthPx)
+                x = if (prefs.isDockedLeft) 0 else (screenWidth - handleTouchWidthPx)
                 y = prefs.dockedY.coerceIn(statusBarHeight + 60, screenHeight - navBarHeight - handleHeightPx - 60)
             }
 
@@ -153,11 +155,18 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     private fun updateCapsuleBackground() {
-        val view = capsuleView ?: return
+        val capsule = capsuleView ?: return
+        val vVisualHandle = capsule.findViewById<View>(R.id.vVisualHandle) ?: return
+        val lp = vVisualHandle.layoutParams as? FrameLayout.LayoutParams ?: return
+
         if (prefs.isDockedLeft) {
-            view.setBackgroundResource(R.drawable.bg_sidebar_handle_left)
+            lp.gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            vVisualHandle.layoutParams = lp
+            vVisualHandle.setBackgroundResource(R.drawable.bg_sidebar_handle_left)
         } else {
-            view.setBackgroundResource(R.drawable.bg_sidebar_handle_right)
+            lp.gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            vVisualHandle.layoutParams = lp
+            vVisualHandle.setBackgroundResource(R.drawable.bg_sidebar_handle_right)
         }
     }
 
@@ -166,12 +175,13 @@ class FloatingOverlayManager(private val context: Context) {
      */
     private fun playLuminousBeaconAnimation() {
         val capsule = capsuleView ?: return
+        val vVisualHandle = capsule.findViewById<View>(R.id.vVisualHandle) ?: return
         val pulseGlow = capsule.findViewById<View>(R.id.vPulseGlow)
         val indicator = capsule.findViewById<View>(R.id.vAccentIndicator)
 
-        capsule.alpha = 1.0f
+        vVisualHandle.alpha = 1.0f
         pulseGlow?.alpha = 1.0f
-        indicator?.scaleY = 1.3f
+        indicator?.scaleY = 1.35f
 
         // Soft haptic tick to announce docking
         HapticHelper.vibrateShort(context)
@@ -179,23 +189,23 @@ class FloatingOverlayManager(private val context: Context) {
         // Pulse animation
         pulseGlow?.animate()
             ?.alpha(0f)
-            ?.setDuration(700)
+            ?.setDuration(600)
             ?.start()
 
         indicator?.animate()
             ?.scaleY(1.0f)
-            ?.setDuration(500)
+            ?.setDuration(450)
             ?.start()
 
-        // Settle into dormant semi-transparent state after 900ms
-        capsule.postDelayed({
+        // Settle into dormant semi-transparent state after 800ms
+        vVisualHandle.postDelayed({
             if (!isExpanded && capsule.isAttachedToWindow) {
-                capsule.animate()
+                vVisualHandle.animate()
                     .alpha(0.40f)
-                    .setDuration(400)
+                    .setDuration(350)
                     .start()
             }
-        }, 900)
+        }, 800)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -211,6 +221,8 @@ class FloatingOverlayManager(private val context: Context) {
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 if (isTransitioning) return true
 
+                val vVisualHandle = v.findViewById<View>(R.id.vVisualHandle)
+
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         initialX = capsuleParams.x
@@ -221,24 +233,25 @@ class FloatingOverlayManager(private val context: Context) {
                         hasSwipedInward = false
 
                         // Light up handle immediately on touch
-                        v.animate().alpha(1.0f).setDuration(120).start()
+                        vVisualHandle?.animate()?.alpha(1.0f)?.setDuration(80)?.start()
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val dx = event.rawX - initialTouchX
                         val dy = event.rawY - initialTouchY
 
-                        // 1. Check INWARD SWIPE GESTURE (向屏幕内划动)
-                        val swipeThreshold = 24 * density
+                        // 1. INWARD SWIPE GESTURE (向屏幕内划动)
+                        // Trigger threshold is low (8dp ~ 24px) for instantaneous response!
+                        val swipeThreshold = 8 * density
                         if (!hasSwipedInward) {
                             if (prefs.isDockedLeft && dx > swipeThreshold) {
-                                // Docked on left, swiped right -> OPEN!
+                                // Docked on left, swiped right into screen -> OPEN!
                                 hasSwipedInward = true
                                 HapticHelper.performClick(v)
                                 expandCard()
                                 return true
                             } else if (!prefs.isDockedLeft && dx < -swipeThreshold) {
-                                // Docked on right, swiped left -> OPEN!
+                                // Docked on right, swiped left into screen -> OPEN!
                                 hasSwipedInward = true
                                 HapticHelper.performClick(v)
                                 expandCard()
@@ -246,7 +259,7 @@ class FloatingOverlayManager(private val context: Context) {
                             }
                         }
 
-                        // 2. Check VERTICAL DRAG (上下滑动调整位置)
+                        // 2. VERTICAL DRAG (上下滑动调整把手位置)
                         if (!hasSwipedInward && abs(dy) > touchSlop && abs(dy) > abs(dx)) {
                             isDraggingY = true
                             capsuleParams.y = (initialY + dy).toInt().coerceIn(
@@ -270,11 +283,11 @@ class FloatingOverlayManager(private val context: Context) {
                             // User finished vertical repositioning
                             prefs.dockedY = capsuleParams.y
                             // Fade back to dormant state
-                            v.postDelayed({
+                            vVisualHandle?.postDelayed({
                                 if (!isExpanded && v.isAttachedToWindow) {
-                                    v.animate().alpha(0.40f).setDuration(300).start()
+                                    vVisualHandle.animate().alpha(0.40f).setDuration(300).start()
                                 }
-                            }, 800)
+                            }, 700)
                         }
                         return true
                     }
@@ -295,19 +308,31 @@ class FloatingOverlayManager(private val context: Context) {
                 (screenWidth * 0.92f).toInt()
             )
 
+            var flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+
+            // Native Android 12+ (API 31+) Frosted Glass Window Blur!
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags = flags or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+            }
+
             cardParams = WindowManager.LayoutParams(
                 cardWidthPx,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 getOverlayWindowType(),
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                flags,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
                 softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
                 x = calculateExpandedCardX(cardWidthPx)
                 y = prefs.cardY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 380)
+
+                // 65px GPU-accelerated Gaussian Frosted Glass Blur
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    blurBehindRadius = 65
+                }
             }
 
             bindCardViews()
@@ -423,7 +448,7 @@ class FloatingOverlayManager(private val context: Context) {
             }
         }
 
-        // Collapse to Sidebar
+        // Collapse to Sidebar (Method 1: Click button)
         btnCollapse.setOnClickListener {
             HapticHelper.performClick(btnCollapse)
             collapseToSidebar()
@@ -435,8 +460,18 @@ class FloatingOverlayManager(private val context: Context) {
             onCloseRequested?.invoke()
         }
 
-        // Dragging Card
+        // Dragging Card & Edge-Snapping (Method 2: Drag to edge to collapse)
         setupCardDragListener(layoutHeader)
+
+        // Tap outside card -> Collapse to sidebar! (Method 3: Click outside to collapse)
+        cardView?.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                hideSoftKeyboard()
+                collapseToSidebar()
+                return@setOnTouchListener true
+            }
+            false
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -447,12 +482,17 @@ class FloatingOverlayManager(private val context: Context) {
             private var initialTouchX = 0f
             private var initialTouchY = 0f
             private var isDragging = false
+            private var velocityTracker: VelocityTracker? = null
 
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 if (isTransitioning) return true
 
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        velocityTracker?.recycle()
+                        velocityTracker = VelocityTracker.obtain()
+                        velocityTracker?.addMovement(event)
+
                         initialX = cardParams.x
                         initialY = cardParams.y
                         initialTouchX = event.rawX
@@ -461,6 +501,8 @@ class FloatingOverlayManager(private val context: Context) {
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
+                        velocityTracker?.addMovement(event)
+
                         val dx = event.rawX - initialTouchX
                         val dy = event.rawY - initialTouchY
                         if (!isDragging && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
@@ -481,29 +523,43 @@ class FloatingOverlayManager(private val context: Context) {
                         return true
                     }
                     MotionEvent.ACTION_UP -> {
+                        velocityTracker?.addMovement(event)
+                        velocityTracker?.computeCurrentVelocity(1000)
+                        val vx = velocityTracker?.xVelocity ?: 0f
+                        velocityTracker?.recycle()
+                        velocityTracker = null
+
                         if (isDragging) {
                             prefs.cardX = cardParams.x
                             prefs.cardY = cardParams.y
 
-                            // Update which side the user is closer to, but DO NOT AUTO COLLAPSE!
-                            // Auto-collapse caused the annoying instant bounce-back!
+                            val edgeMargin = 28 * density
+                            // Pushed near left edge or flung left -> Collapse to left edge!
+                            if (cardParams.x < edgeMargin || vx < -1200f) {
+                                prefs.isDockedLeft = true
+                                collapseToSidebar()
+                                return true
+                            }
+                            // Pushed near right edge or flung right -> Collapse to right edge!
+                            if (cardParams.x + cardParams.width > screenWidth - edgeMargin || vx > 1200f) {
+                                prefs.isDockedLeft = false
+                                collapseToSidebar()
+                                return true
+                            }
+
+                            // Keep closer side preference
                             prefs.isDockedLeft = (cardParams.x + cardParams.width / 2) < (screenWidth / 2)
                         }
                         return true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        velocityTracker?.recycle()
+                        velocityTracker = null
                     }
                 }
                 return false
             }
         })
-
-        // Tap outside card -> hide soft keyboard
-        cardView?.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_OUTSIDE) {
-                hideSoftKeyboard()
-                return@setOnTouchListener true
-            }
-            false
-        }
     }
 
     fun show() {
@@ -541,7 +597,7 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     /**
-     * Smoothly expands the card with a physical drawer slide & scale animation
+     * Seamlessly expands the card from the docked sidebar handle with zero flicker
      */
     private fun expandCard() {
         if (isExpanded || isTransitioning) return
@@ -549,36 +605,42 @@ class FloatingOverlayManager(private val context: Context) {
         isExpanded = true
         prefs.isExpanded = true
 
-        // Position card comfortably inside screen
-        val cardWidth = cardParams.width
-        cardParams.x = calculateExpandedCardX(cardWidth)
-        cardParams.y = capsuleParams.y.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 420)
-
-        // Detach capsule, attach card
-        detachViewSafe(capsuleView)
-        attachCard()
-
         val card = cardView ?: run {
             isTransitioning = false
             return
         }
 
-        // Slide-in animation from the docked edge
+        // Position card comfortably inside screen
+        val cardWidth = cardParams.width
+        cardParams.x = calculateExpandedCardX(cardWidth)
+        cardParams.y = capsuleParams.y.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 420)
+
+        // 1. Attach card first with alpha = 0 and slide offset
         val slideOffset = if (prefs.isDockedLeft) -120f else 120f
         card.translationX = slideOffset
         card.alpha = 0f
         card.scaleX = 0.85f
         card.scaleY = 0.85f
+        attachCard()
 
+        // 2. Fade out handle while sliding card in
+        val vVisualHandle = capsuleView?.findViewById<View>(R.id.vVisualHandle)
+        vVisualHandle?.animate()
+            ?.alpha(0f)
+            ?.setDuration(160)
+            ?.start()
+
+        // 3. Smooth elastic slide-in
         card.animate()
             .translationX(0f)
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
             .setDuration(260)
-            .setInterpolator(OvershootInterpolator(1.1f))
+            .setInterpolator(OvershootInterpolator(1.15f))
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
+                    detachViewSafe(capsuleView)
                     isTransitioning = false
                 }
             })
@@ -586,7 +648,7 @@ class FloatingOverlayManager(private val context: Context) {
     }
 
     /**
-     * Smoothly collapses the card towards the docked edge with fade & slide, then lights up the handle
+     * Seamlessly collapses the card towards the docked edge with zero flicker
      */
     private fun collapseToSidebar() {
         if (!isExpanded || isTransitioning) return
@@ -603,22 +665,27 @@ class FloatingOverlayManager(private val context: Context) {
         prefs.isDockedLeft = dockLeft
         prefs.dockedY = cardParams.y
 
-        val handleWidth = capsuleParams.width
-        capsuleParams.x = if (dockLeft) 0 else (screenWidth - handleWidth)
+        val handleTouchWidth = capsuleParams.width
+        capsuleParams.x = if (dockLeft) 0 else (screenWidth - handleTouchWidth)
         capsuleParams.y = cardParams.y.coerceIn(
             statusBarHeight + 50,
             screenHeight - navBarHeight - capsuleParams.height - 50
         )
         updateCapsuleBackground()
 
-        // Slide card towards edge while shrinking
-        val slideTarget = if (dockLeft) -100f else 100f
+        // 1. Warm up capsule window surface FIRST with 0 alpha (prevents black/white flicker gap!)
+        val vVisualHandle = capsuleView?.findViewById<View>(R.id.vVisualHandle)
+        vVisualHandle?.alpha = 0f
+        attachCapsule()
+
+        // 2. Morph crossfade: Card slides into edge while handle fades in simultaneously!
+        val slideTarget = if (dockLeft) -140f else 140f
         card.animate()
             .translationX(slideTarget)
             .alpha(0f)
-            .scaleX(0.75f)
-            .scaleY(0.75f)
-            .setDuration(190)
+            .scaleX(0.70f)
+            .scaleY(0.70f)
+            .setDuration(220)
             .setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
@@ -626,7 +693,6 @@ class FloatingOverlayManager(private val context: Context) {
                     detachViewSafe(cardView)
                     isExpanded = false
                     prefs.isExpanded = false
-                    attachCapsule()
                     isTransitioning = false
 
                     // Play the glowing beacon animation on the newly tucked handle!
@@ -634,6 +700,12 @@ class FloatingOverlayManager(private val context: Context) {
                 }
             })
             .start()
+
+        // Handle fades in at the exact same moment
+        vVisualHandle?.animate()
+            ?.alpha(1.0f)
+            ?.setDuration(220)
+            ?.start()
     }
 
     private fun attachCapsule() {
@@ -697,7 +769,8 @@ class FloatingOverlayManager(private val context: Context) {
             cardParams.y = cardParams.y.coerceIn(statusBarHeight, max(statusBarHeight, screenHeight - navBarHeight - 200))
             updateViewLayoutSafe(cardView, cardParams)
         } else {
-            capsuleParams.x = if (prefs.isDockedLeft) 0 else (screenWidth - capsuleParams.width)
+            val handleTouchWidth = capsuleParams.width
+            capsuleParams.x = if (prefs.isDockedLeft) 0 else (screenWidth - handleTouchWidth)
             capsuleParams.y = capsuleParams.y.coerceIn(statusBarHeight, max(statusBarHeight, screenHeight - navBarHeight - capsuleParams.height))
             updateCapsuleBackground()
             updateViewLayoutSafe(capsuleView, capsuleParams)

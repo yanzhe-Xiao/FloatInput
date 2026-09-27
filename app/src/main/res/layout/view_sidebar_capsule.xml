@@ -1,27 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/capsuleRoot"
-    android:layout_width="26dp"
-    android:layout_height="76dp"
-    android:background="@drawable/bg_sidebar_handle_right"
+    android:layout_width="48dp"
+    android:layout_height="80dp"
     android:clickable="true"
-    android:elevation="10dp"
     android:focusable="true">
 
-    <!-- Luminous beacon pulse view (expands on collapse) -->
-    <View
-        android:id="@+id/vPulseGlow"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0"
-        android:background="#3338BDF8" />
+    <!-- Inner visual handle tucked against the border -->
+    <FrameLayout
+        android:id="@+id/vVisualHandle"
+        android:layout_width="22dp"
+        android:layout_height="76dp"
+        android:layout_gravity="center_vertical|start"
+        android:background="@drawable/bg_sidebar_handle_left"
+        android:elevation="10dp">
 
-    <!-- Center vertical glowing indicator bar -->
-    <View
-        android:id="@+id/vAccentIndicator"
-        android:layout_width="4dp"
-        android:layout_height="32dp"
-        android:layout_gravity="center"
-        android:background="#CC38BDF8" />
+        <!-- Luminous beacon pulse view (expands on collapse) -->
+        <View
+            android:id="@+id/vPulseGlow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0"
+            android:background="#4D38BDF8" />
+
+        <!-- Center vertical glowing indicator bar -->
+        <View
+            android:id="@+id/vAccentIndicator"
+            android:layout_width="4dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:background="#CC38BDF8" />
+
+    </FrameLayout>
 
 </FrameLayout>
