@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cardRoot"
-    android:layout_width="320dp"
+    android:layout_width="330dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_glassmorphic_card_dark"
     android:elevation="16dp">
@@ -12,15 +12,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="14dp"
+        android:paddingHorizontal="12dp"
         android:paddingTop="8dp"
-        android:paddingBottom="12dp">
+        android:paddingBottom="10dp">
 
-        <!-- Top Header: Ultra-slim minimalist Drag Bar (Red Box area) -->
+        <!-- Top Header: Ultra-slim minimalist Drag Bar -->
         <FrameLayout
             android:id="@+id/layoutHeader"
             android:layout_width="match_parent"
-            android:layout_height="20dp"
+            android:layout_height="18dp"
             android:clickable="true"
             android:focusable="true">
 
@@ -33,95 +33,106 @@
                 android:background="@drawable/bg_drag_pill" />
         </FrameLayout>
 
-        <!-- Input Box: EditText with Character Count inside bottom-right -->
-        <FrameLayout
-            android:id="@+id/layoutInputContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/bg_input_box_dark"
-            android:paddingHorizontal="12dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="24dp">
-
-            <EditText
-                android:id="@+id/etInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:gravity="top|start"
-                android:hint="@string/hint_input"
-                android:importantForAutofill="no"
-                android:inputType="textMultiLine|textCapSentences"
-                android:lineSpacingMultiplier="1.2"
-                android:maxLines="7"
-                android:minLines="3"
-                android:scrollbars="vertical"
-                android:textColor="#F8FAFC"
-                android:textColorHint="#475569"
-                android:textSize="15sp"
-                tools:ignore="Autofill" />
-
-            <!-- Character counter inside text box bottom-right corner -->
-            <TextView
-                android:id="@+id/tvCharCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="4dp"
-                android:layout_marginBottom="3dp"
-                android:background="@android:color/transparent"
-                android:text="0 字符"
-                android:textColor="#64748B"
-                android:textSize="11sp" />
-        </FrameLayout>
-
-        <!-- Bottom Action Row: Compact icon-only buttons aligned to the far right -->
+        <!-- Main Content Row: Input Box on the Left, Action Buttons Column on the Right -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center_vertical|end"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Clear Icon Button -->
+            <!-- Input Box: EditText with Character Count inside bottom-right -->
             <FrameLayout
-                android:id="@+id/btnClear"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="@drawable/bg_btn_clear_icon"
-                android:clickable="true"
-                android:focusable="true">
+                android:id="@+id/layoutInputContainer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box_dark"
+                android:paddingHorizontal="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="4dp">
 
-                <ImageView
-                    android:id="@+id/ivClearIcon"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@string/action_clear"
-                    android:src="@drawable/ic_clear"
-                    app:tint="#F87171" />
+                <EditText
+                    android:id="@+id/etInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:gravity="top|start"
+                    android:hint="@string/hint_input"
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:lineSpacingMultiplier="1.2"
+                    android:maxLines="6"
+                    android:minLines="3"
+                    android:scrollbars="vertical"
+                    android:textColor="#F8FAFC"
+                    android:textColorHint="#475569"
+                    android:textSize="15sp"
+                    android:paddingBottom="16dp"
+                    tools:ignore="Autofill" />
+
+                <!-- Character counter inside text box bottom-right corner -->
+                <TextView
+                    android:id="@+id/tvCharCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginBottom="2dp"
+                    android:background="@android:color/transparent"
+                    android:text="0 字符"
+                    android:textColor="#64748B"
+                    android:textSize="11sp" />
             </FrameLayout>
 
-            <!-- Copy Icon Button -->
-            <FrameLayout
-                android:id="@+id/btnCopy"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
+            <!-- Right Column: Vertical Action Buttons (Clear on top, Copy on bottom) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:background="@drawable/bg_btn_copy_icon"
-                android:clickable="true"
-                android:focusable="true">
+                android:gravity="center"
+                android:orientation="vertical">
 
-                <ImageView
-                    android:id="@+id/ivCopyIcon"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@string/action_copy"
-                    android:src="@drawable/ic_copy"
-                    app:tint="#FFFFFF" />
-            </FrameLayout>
+                <!-- Clear Icon Button (Top, destination of blue arrow) -->
+                <FrameLayout
+                    android:id="@+id/btnClear"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_btn_clear_icon"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/ivClearIcon"
+                        android:layout_width="17dp"
+                        android:layout_height="17dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/action_clear"
+                        android:src="@drawable/ic_clear"
+                        app:tint="#F87171" />
+                </FrameLayout>
+
+                <!-- Copy Icon Button (Bottom, destination of red arrow) -->
+                <FrameLayout
+                    android:id="@+id/btnCopy"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_btn_copy_icon"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/ivCopyIcon"
+                        android:layout_width="17dp"
+                        android:layout_height="17dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/action_copy"
+                        android:src="@drawable/ic_copy"
+                        app:tint="#FFFFFF" />
+                </FrameLayout>
+            </LinearLayout>
+
         </LinearLayout>
     </LinearLayout>
 

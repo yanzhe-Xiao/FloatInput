@@ -22,7 +22,7 @@
             android:minHeight="?attr/actionBarSize"
             android:paddingVertical="4dp"
             app:title="@string/app_name_full"
-            app:subtitle="v1.4.0 · 极简侧边浮窗"
+            app:subtitle="v1.5.0 · 极简侧边浮窗"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium"
             app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -318,7 +318,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="3dp"
-                                android:text="当前版本: v1.4.0"
+                                android:text="当前版本: v1.5.0"
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                                 android:textColor="?attr/colorPrimary" />
                         </LinearLayout>

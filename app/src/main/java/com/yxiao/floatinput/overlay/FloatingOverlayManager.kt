@@ -348,8 +348,8 @@ class FloatingOverlayManager(private val context: Context) {
             cardView = inflater.inflate(R.layout.view_floating_card, null)
 
             val cardWidthPx = min(
-                (320 * density).toInt(),
-                (screenWidth * 0.92f).toInt()
+                (330 * density).toInt(),
+                (screenWidth * 0.94f).toInt()
             )
 
             var flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or

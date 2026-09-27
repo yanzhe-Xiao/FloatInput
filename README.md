@@ -4,7 +4,7 @@
 ### 专为 Android 15 深度调优 · 原生硬件毛玻璃 · 边框半隐贴边浮窗
 
 [![Android 15](https://img.shields.io/badge/Android-15%20(API%2035)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/about/versions/15)
-[![Version](https://img.shields.io/badge/Version-v1.4.0%20(Build%205)-38BDF8?style=for-the-badge&logo=semver&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/tag/v1.4.0)
+[![Version](https://img.shields.io/badge/Version-v1.5.0%20(Build%206)-38BDF8?style=for-the-badge&logo=semver&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/tag/v1.5.0)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Size](https://img.shields.io/badge/APK%20Size-2.0%20MB-10B981?style=for-the-badge&logo=googleplay&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/latest)
 [![CI/CD](https://img.shields.io/badge/GitHub%20Actions-Auto--Build-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/build-apk.yml)
@@ -15,7 +15,7 @@
 **FloatInput（微浮）** 是一款轻量到极致、追求纯粹效率的 Android 15 悬浮输入辅助工具。  
 半隐形收纳于屏幕黑边内，微光呼吸灯提示停靠，向内轻拨秒级滑出，原生高斯毛玻璃视效，支持任意第三方输入法畅快混输，绝不弹安全键盘。
 
-[📥 立即下载最新 APK (v1.4.0)](https://github.com/yanzhe-Xiao/FloatInput/releases/download/v1.4.0/app-release.apk) • [📦 版本发布页](https://github.com/yanzhe-Xiao/FloatInput/releases) • [🐞 报告问题](https://github.com/yanzhe-Xiao/FloatInput/issues)
+[📥 立即下载最新 APK (v1.5.0)](https://github.com/yanzhe-Xiao/FloatInput/releases/download/v1.5.0/app-release.apk) • [📦 版本发布页](https://github.com/yanzhe-Xiao/FloatInput/releases) • [🐞 报告问题](https://github.com/yanzhe-Xiao/FloatInput/issues)
 
 </div>
 
@@ -30,15 +30,14 @@
    ├──┤▍ │ 边框半隐把手   │   ──▶ 向内轻拨 (Inward Swipe) ──▶ 瞬时滑出输入面板
    │  └──┘ (48dp手势跑道) │
    │                     │
-   │                     │   ┌──────────────────────────────────────────────────┐
-   │                     │   │                    ─── (拖拽条)                   │
-   │                     │   │ ┌──────────────────────────────────────────────┐ │
-   │                     │   │ │ 真实系统级硬件高斯毛玻璃背景实时虚化透出...  │ │
-   │                     │   │ │ 中英文自由混输 (支持微信/搜狗/Gboard/小鹤音形)│ │
-   │                     │   │ │                                      48 字符 │ │
-   │                     │   │ └──────────────────────────────────────────────┘ │
-   │                     │   │                                      [ 🧹 ] [ 📋 ]│
-   │                     │   └──────────────────────────────────────────────────┘
+   │                     │   ┌────────────────────────────────────────────────────────┐
+   │                     │   │                        ─── (拖拽条)                     │
+   │                     │   │ ┌───────────────────────────────────────────┐  ┌─────┐ │
+   │                     │   │ │ 真实系统级硬件高斯毛玻璃背景实时虚化透出... │  │ [🧹] │ │
+   │                     │   │ │ 中英文自由混输 (支持微信/搜狗/Gboard/小鹤)  │  ├─────┤ │
+   │                     │   │ │                                    48 字符 │  │ [📋] │ │
+   │                     │   │ └───────────────────────────────────────────┘  └─────┘ │
+   │                     │   └────────────────────────────────────────────────────────┘
    │                     │         │                        │
    │                     │         ▼ (推向边缘自动吸附)       ▼ (点击外部空白处)
    │                     │      平滑渐隐贴边 (微光呼吸灯闪烁)  无缝收纳回边框把手
