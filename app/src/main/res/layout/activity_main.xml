@@ -20,7 +20,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name_full"
-            app:subtitle="v1.2.0 · 在线自动更新与统一签名版"
+            app:subtitle="v1.3.0 · 零闪烁动效与极低资源占用版"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium"
             app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall" />
     </com.google.android.material.appbar.AppBarLayout>

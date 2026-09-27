@@ -4,7 +4,7 @@
 ### 专为 Android 15 深度调优 · 原生硬件毛玻璃 · 边框半隐贴边浮窗
 
 [![Android 15](https://img.shields.io/badge/Android-15%20(API%2035)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/about/versions/15)
-[![Version](https://img.shields.io/badge/Version-v1.2.0%20(Build%203)-38BDF8?style=for-the-badge&logo=semver&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/tag/v1.2.0)
+[![Version](https://img.shields.io/badge/Version-v1.3.0%20(Build%204)-38BDF8?style=for-the-badge&logo=semver&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/tag/v1.3.0)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Size](https://img.shields.io/badge/APK%20Size-2.0%20MB-10B981?style=for-the-badge&logo=googleplay&logoColor=white)](https://github.com/yanzhe-Xiao/FloatInput/releases/latest)
 [![CI/CD](https://img.shields.io/badge/GitHub%20Actions-Auto--Build-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/build-apk.yml)
@@ -15,7 +15,7 @@
 **FloatInput（微浮）** 是一款轻量到极致、追求纯粹效率的 Android 15 悬浮输入辅助工具。  
 半隐形收纳于屏幕黑边内，微光呼吸灯提示停靠，向内轻拨秒级滑出，原生高斯毛玻璃视效，支持任意第三方输入法畅快混输，绝不弹安全键盘。
 
-[📥 立即下载最新 APK (v1.2.0)](https://github.com/yanzhe-Xiao/FloatInput/releases/download/v1.2.0/app-release.apk) • [📦 版本发布页](https://github.com/yanzhe-Xiao/FloatInput/releases) • [🐞 报告问题](https://github.com/yanzhe-Xiao/FloatInput/issues)
+[📥 立即下载最新 APK (v1.3.0)](https://github.com/yanzhe-Xiao/FloatInput/releases/download/v1.3.0/app-release.apk) • [📦 版本发布页](https://github.com/yanzhe-Xiao/FloatInput/releases) • [🐞 报告问题](https://github.com/yanzhe-Xiao/FloatInput/issues)
 
 </div>
 
@@ -31,7 +31,7 @@
    │  └──┘ (48dp手势跑道) │
    │                     │
    │                     │   ┌──────────────────────────────────────────────────┐
-   │                     │   │ [●] 微浮输入  v1.2.0        [=]   [—]折叠   [✕]关闭 │
+   │                     │   │ [●] 微浮输入  v1.3.0        [=]   [—]折叠   [✕]关闭 │
    │                     │   │ ┌──────────────────────────────────────────────┐ │
    │                     │   │ │ 真实系统级 65px 高斯毛玻璃实时背景虚化透出...  │ │
    │                     │   │ │ 中英文自由混输 (支持微信/搜狗/Gboard/小鹤音形)│ │

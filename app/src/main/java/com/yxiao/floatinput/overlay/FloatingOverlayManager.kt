@@ -128,8 +128,7 @@ class FloatingOverlayManager(private val context: Context) {
             val inflater = LayoutInflater.from(themedContext)
             capsuleView = inflater.inflate(R.layout.view_sidebar_capsule, null)
 
-            // Touch target width is 48dp (Google Material Design standard touch size)
-            // While the visual handle inside is only 22dp and tucked to the edge
+            // Touch target runway width: 48dp (Google Material minimum touch target)
             val handleTouchWidthPx = (48 * density).toInt()
             val handleHeightPx = (80 * density).toInt()
 
@@ -189,23 +188,23 @@ class FloatingOverlayManager(private val context: Context) {
         // Pulse animation
         pulseGlow?.animate()
             ?.alpha(0f)
-            ?.setDuration(600)
+            ?.setDuration(550)
             ?.start()
 
         indicator?.animate()
             ?.scaleY(1.0f)
-            ?.setDuration(450)
+            ?.setDuration(400)
             ?.start()
 
-        // Settle into dormant semi-transparent state after 800ms
+        // Settle into dormant semi-transparent state after 750ms
         vVisualHandle.postDelayed({
             if (!isExpanded && capsule.isAttachedToWindow) {
                 vVisualHandle.animate()
                     .alpha(0.40f)
-                    .setDuration(350)
+                    .setDuration(300)
                     .start()
             }
-        }, 800)
+        }, 750)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -233,7 +232,7 @@ class FloatingOverlayManager(private val context: Context) {
                         hasSwipedInward = false
 
                         // Light up handle immediately on touch
-                        vVisualHandle?.animate()?.alpha(1.0f)?.setDuration(80)?.start()
+                        vVisualHandle?.animate()?.alpha(1.0f)?.setDuration(60)?.start()
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
@@ -285,9 +284,9 @@ class FloatingOverlayManager(private val context: Context) {
                             // Fade back to dormant state
                             vVisualHandle?.postDelayed({
                                 if (!isExpanded && v.isAttachedToWindow) {
-                                    vVisualHandle.animate().alpha(0.40f).setDuration(300).start()
+                                    vVisualHandle.animate().alpha(0.40f).setDuration(250).start()
                                 }
-                            }, 700)
+                            }, 600)
                         }
                         return true
                     }
@@ -329,9 +328,9 @@ class FloatingOverlayManager(private val context: Context) {
                 x = calculateExpandedCardX(cardWidthPx)
                 y = prefs.cardY.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 380)
 
-                // 65px GPU-accelerated Gaussian Frosted Glass Blur
+                // 40px GPU-accelerated Gaussian Frosted Glass Blur (Highly optimized for low resource usage)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    blurBehindRadius = 65
+                    blurBehindRadius = 40
                 }
             }
 
@@ -547,8 +546,18 @@ class FloatingOverlayManager(private val context: Context) {
                                 return true
                             }
 
-                            // Keep closer side preference
-                            prefs.isDockedLeft = (cardParams.x + cardParams.width / 2) < (screenWidth / 2)
+                            // FIXED DOCKING SIDE:
+                            // Do NOT change sides on minor drags!
+                            // Only switch sides if user intentionally dragged past the opposite third of screen!
+                            if (prefs.isDockedLeft) {
+                                if (cardParams.x > screenWidth / 3) {
+                                    prefs.isDockedLeft = false
+                                }
+                            } else {
+                                if ((cardParams.x + cardParams.width) < screenWidth * 2 / 3) {
+                                    prefs.isDockedLeft = true
+                                }
+                            }
                         }
                         return true
                     }
@@ -615,31 +624,34 @@ class FloatingOverlayManager(private val context: Context) {
         cardParams.x = calculateExpandedCardX(cardWidth)
         cardParams.y = capsuleParams.y.coerceIn(statusBarHeight + 50, screenHeight - navBarHeight - 420)
 
-        // 1. Attach card first with alpha = 0 and slide offset
+        // Make visible and set initial slide offset BEFORE attaching
+        card.visibility = View.VISIBLE
         val slideOffset = if (prefs.isDockedLeft) -120f else 120f
         card.translationX = slideOffset
         card.alpha = 0f
         card.scaleX = 0.85f
         card.scaleY = 0.85f
+        card.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         attachCard()
 
-        // 2. Fade out handle while sliding card in
+        // Fade out handle
         val vVisualHandle = capsuleView?.findViewById<View>(R.id.vVisualHandle)
         vVisualHandle?.animate()
             ?.alpha(0f)
-            ?.setDuration(160)
+            ?.setDuration(140)
             ?.start()
 
-        // 3. Smooth elastic slide-in
+        // Smooth elastic slide-in
         card.animate()
             .translationX(0f)
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(260)
+            .setDuration(240)
             .setInterpolator(OvershootInterpolator(1.15f))
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
+                    card.setLayerType(View.LAYER_TYPE_NONE, null)
                     detachViewSafe(capsuleView)
                     isTransitioning = false
                 }
@@ -660,11 +672,9 @@ class FloatingOverlayManager(private val context: Context) {
             return
         }
 
-        // Determine nearest docking edge
-        val dockLeft = (cardParams.x + cardParams.width / 2) < (screenWidth / 2)
-        prefs.isDockedLeft = dockLeft
-        prefs.dockedY = cardParams.y
-
+        // FIXED DOCKING SIDE:
+        // Always stick to current docked side unless user intentionally dragged it to the other half!
+        val dockLeft = prefs.isDockedLeft
         val handleTouchWidth = capsuleParams.width
         capsuleParams.x = if (dockLeft) 0 else (screenWidth - handleTouchWidth)
         capsuleParams.y = cardParams.y.coerceIn(
@@ -673,39 +683,39 @@ class FloatingOverlayManager(private val context: Context) {
         )
         updateCapsuleBackground()
 
-        // 1. Warm up capsule window surface FIRST with 0 alpha (prevents black/white flicker gap!)
+        // 1. Prepare capsule view: attached with alpha = 0 so its window surface is warm
         val vVisualHandle = capsuleView?.findViewById<View>(R.id.vVisualHandle)
         vVisualHandle?.alpha = 0f
         attachCapsule()
 
-        // 2. Morph crossfade: Card slides into edge while handle fades in simultaneously!
-        val slideTarget = if (dockLeft) -140f else 140f
+        // 2. Hardware acceleration layer during animation
+        card.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+
+        val slideTarget = if (dockLeft) -150f else 150f
         card.animate()
             .translationX(slideTarget)
             .alpha(0f)
             .scaleX(0.70f)
             .scaleY(0.70f)
-            .setDuration(220)
+            .setDuration(200)
             .setInterpolator(DecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    card.translationX = 0f
+                    // CRUCIAL FIX: Set GONE immediately so SurfaceFlinger NEVER draws it again
+                    // Do NOT reset translationX to 0 here! That was what caused the 1-frame pop-back glitch!
+                    card.visibility = View.GONE
+                    card.setLayerType(View.LAYER_TYPE_NONE, null)
                     detachViewSafe(cardView)
+
                     isExpanded = false
                     prefs.isExpanded = false
                     isTransitioning = false
 
-                    // Play the glowing beacon animation on the newly tucked handle!
+                    // Play luminous beacon on the handle
                     playLuminousBeaconAnimation()
                 }
             })
             .start()
-
-        // Handle fades in at the exact same moment
-        vVisualHandle?.animate()
-            ?.alpha(1.0f)
-            ?.setDuration(220)
-            ?.start()
     }
 
     private fun attachCapsule() {
